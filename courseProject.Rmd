@@ -1,0 +1,72 @@
+---
+title: "Course Project: Practical machine learning"
+author: "RKT"
+date: "12 February 2016"
+output: html_document
+---
+
+### Setting up the work environment
+
+Setting the  working directory
+```{r}
+setwd("~/coursera/practicalMachineLearning/")
+```
+
+Loading the required packages
+```{r}
+suppressWarnings(library(caret))
+suppressWarnings(library(data.table))
+```
+
+Loading the data
+```{r}
+data <- read.table("pml-training.csv", header = TRUE, sep = ",")
+quizData <- read.table("pml-testing.csv", header = TRUE, sep = ",")
+```
+
+
+### Data Cleaning
+
+Understanding the data
+```{r}
+#names(data)
+nrow(data)
+table(data$classe)
+#head(quizData)
+#tail(quizData)
+```
+
+From the overview of the quizData, it appears that there are columns which have all the entries missing. Since, those columns can not be used for prediction, I have removed all those columns from both the data and the quizData. Also, there are columns containing timestamp or username (columns 1 to 5). Those data are also removed as they have no predictive power.
+
+```{r}
+index <- sapply(quizData, function(x) sum(is.na(x)) == nrow(quizData))
+data <- data[,!(index)]
+data <- data[, -c(1:5)]
+quizData <- quizData[,!(index)]
+quizData <- quizData[, -c(1:5)]
+```
+
+### Model training, evaluation and prediction
+
+#### Model selection and training
+I have chosen random forest algorithm because of its accuracy and efficiency. Since, the random forest algorithm has in-built algorithm for the estimation of unbiased classification error using out-of-bag (OOB) data, we therefore need not split the data into training and the test data set.
+
+```{r, cache=TRUE}
+rfModel <- train(classe ~ ., data = data, method = "rf")
+```
+
+#### Model evaluation
+```{r}
+print(rfModel)
+```
+
+We see that the accuracy (out-of-bag (oob))  is 0.9974 (mtry = 28). In the calculation of the oob accuracy, prediction of only those trees that did not use oob data for training are used. However, in the out-of-sample error calculations all the trees will be used. I, therefore, expect out-of-sample error to be smaller than 0.0026 (1-0.9974).
+
+#### Model prediction
+```{r}
+predict(rfModel, quizData)
+```
+
+The model got all the predictions right for the quiz question. This provides proof that out-of-sample error is, indeed, smaller than 0.0027 
+
+
